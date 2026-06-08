@@ -29,10 +29,10 @@ def get_url_text(url):
 
 def send_whatsapp_alert(message_text, target_phone):
     if not target_phone or not WAPPFLY_API_KEY or not WAPPFLY_DEVICE_ID:
-        print("Skipping alert: Missing credentials or phone number secret.")
+        print(f"Skipping alert for {target_phone}: Missing credentials or phone number secret.")
         return
         
-    # The official verified REST endpoint for sending text via Wappfly
+    # Official Wappfly API text messaging endpoint
     api_url = "https://wappfly.com/api/send/text"
     
     headers = {
@@ -51,7 +51,7 @@ def send_whatsapp_alert(message_text, target_phone):
         if res.status_code in [200, 201]:
             print(f"🎉 WhatsApp alert successfully sent to {target_phone}!")
         else:
-            print(f"Wappfly Error: {res.status_code} - {res.text}")
+            print(f"Wappfly Error for {target_phone}: {res.status_code} - {res.text}")
     except Exception as e:
         print(f"Failed to connect to Wappfly: {e}")
 
@@ -69,25 +69,4 @@ def check_website():
             if new_additions:
                 print("Changes detected! Preparing text summary...")
                 alert_text = "🚨 *NABI Career Page Update!* 🚨\n\n"
-                alert_text += f"🔗 *Link:* {URL_TO_WATCH}\n\n"
-                alert_text += "➕ *What was added/changed:*\n"
-                for line in new_additions[:5]:
-                    alert_text += f"• {line}\n"
-                if len(new_additions) > 5:
-                    alert_text += f"• _...and {len(new_additions) - 5} more lines._\n"
-                
-                for phone in PHONE_NUMBERS:
-                    send_whatsapp_alert(alert_text, phone)
-            else:
-                print("No new content added since the last check.")
-        else:
-            print("First run: Establishing baseline tracking text file.")
-        
-        with open(TEXT_FILE, "w", encoding="utf-8") as f:
-            for line in current_lines:
-                f.write(f"{line}\n")
-    else:
-        print("Could not scrape page successfully.")
-
-if __name__ == "__main__":
-    check_website()
+                alert_text += f"🔗 *Link:* {URL_TO_WATCH}\
