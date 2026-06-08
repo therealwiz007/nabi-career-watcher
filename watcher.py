@@ -29,31 +29,33 @@ def get_url_text(url):
 
 def send_whatsapp_alert(message_text, target_phone):
     if not target_phone or not WAPPFLY_API_KEY or not WAPPFLY_DEVICE_ID:
-        print(f"Skipping alert for {target_phone}: Missing credentials or phone number secret.")
+        print(f"Skipping alert for {target_phone}: Missing credentials or secret values.")
         return
         
-    # Official Wappfly API text messaging endpoint
+    # The official primary text sending endpoint route
     api_url = "https://wappfly.com/api/send/text"
     
+    # Passing token inside headers as explicitly required
     headers = {
-        "X-API-Token": WAPPFLY_API_KEY,
-        "Content-Type": "application/json"
+        "X-API-Token": WAPPFLY_API_KEY
     }
     
-    payload = {
+    # Wappfly requires standard Form Data payload delivery rather than a JSON dictionary
+    payload_data = {
         "device_id": WAPPFLY_DEVICE_ID,
         "to": target_phone,
         "message": message_text
     }
     
     try:
-        res = requests.post(api_url, json=payload, headers=headers, timeout=12)
+        # Note: We use 'data=payload_data' instead of 'json=payload' to bypass 404 parsing errors
+        res = requests.post(api_url, data=payload_data, headers=headers, timeout=15)
         if res.status_code in [200, 201]:
-            print(f"🎉 WhatsApp alert successfully sent to {target_phone}!")
+            print(f"🎉 Success! WhatsApp alert successfully sent to {target_phone}!")
         else:
-            print(f"Wappfly Error for {target_phone}: {res.status_code} - {res.text}")
+            print(f"Wappfly Alert Return Code: {res.status_code} - {res.text}")
     except Exception as e:
-        print(f"Failed to connect to Wappfly: {e}")
+        print(f"Failed to communicate with Wappfly server: {e}")
 
 def check_website():
     stored_lines = []
@@ -91,8 +93,8 @@ def check_website():
 
 # ==================== EXECUTION CONTROL ====================
 if __name__ == "__main__":
-    print("🚀 Bypassing website check to run a direct Wappfly message test...")
-    test_msg = "🚀 *Wappfly Connection Test!* 🚀\n\nYour GitHub secrets and automated script are working perfectly!"
+    print("🚀 Forcing active connection trial to verify live Wappfly dashboard tier...")
+    test_msg = "🚀 *Wappfly System Verification!* 🚀\n\nYour free tier automation code and GitHub setup are processing cleanly!"
     
     for phone in PHONE_NUMBERS:
         send_whatsapp_alert(test_msg, phone)
