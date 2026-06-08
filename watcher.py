@@ -1,41 +1,39 @@
 import os
-import hashlib
 import requests
 from bs4 import BeautifulSoup
 
 # ==================== CONFIGURATION ====================
-# Securely pulling your private credentials from GitHub Actions environment
 WAPPFLY_API_KEY = os.environ.get("WAPPFLY_API_KEY")
 WAPPFLY_DEVICE_ID = os.environ.get("WAPPFLY_DEVICE_ID")
 
-# The two hidden phone numbers to alert
 PHONE_NUMBERS = [
     os.environ.get("PHONE_ONE"),
     os.environ.get("PHONE_TWO")
 ]
 
 URL_TO_WATCH = "https://nabi.res.in/site/career"
-HASH_FILE = "last_hash.txt"
+TEXT_FILE = "last_website_text.txt"  # Changed from hash to storing actual text
 # =======================================================
 
-def get_url_hash(url):
+def get_url_text(url):
+    """Fetches the website and returns clean visible text split into lines."""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         response = requests.get(url, headers=headers, timeout=20)
         
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            page_text = soup.get_text().strip().encode('utf-8')
-            return hashlib.md5(page_text).hexdigest()
+            
+            # Get clean text, strip empty spaces, and break into clean lines
+            lines = [line.strip() for line in soup.get_text().splitlines() if line.strip()]
+            return lines
     except Exception as e:
         print(f"Error reading {url}: {e}")
     return None
 
 def send_whatsapp_alert(message_text, target_phone):
     if not target_phone:
-        print("Skipping alert: Target phone number environment variable is empty.")
         return
-
     api_url = "https://api.wappfly.com/v1/messages"
     headers = {
         "Authorization": f"Bearer {WAPPFLY_API_KEY}",
@@ -51,35 +49,53 @@ def send_whatsapp_alert(message_text, target_phone):
         if res.status_code in [200, 201]:
             print(f"WhatsApp alert successfully sent to {target_phone}!")
         else:
-            print(f"Wappfly error for {target_phone}: {res.text}")
+            print(f"Wappfly error: {res.text}")
     except Exception as e:
-        print(f"Failed to connect to Wappfly for {target_phone}: {e}")
+        print(f"Failed to connect to Wappfly: {e}")
 
 def check_website():
-    stored_hash = ""
-    if os.path.exists(HASH_FILE):
-        with open(HASH_FILE, "r") as f:
-            stored_hash = f.read().strip()
+    stored_lines = []
+    if os.path.exists(TEXT_FILE):
+        with open(TEXT_FILE, "r", encoding="utf-8") as f:
+            stored_lines = [line.strip() for line in f.readlines() if line.strip()]
 
-    current_hash = get_url_hash(URL_TO_WATCH)
+    current_lines = get_url_text(URL_TO_WATCH)
     
-    if current_hash:
-        # If we have a past recorded state, and it doesn't match the new state -> SITE UPDATED!
-        if stored_hash and stored_hash != current_hash:
-            print("Change detected! Dispatching notifications...")
-            alert_text = f"🚨 *NABI Career Page Update!* 🚨\n\nChanges found on: {URL_TO_WATCH}"
+    if current_lines:
+        # If we have a past record, compare them line-by-line
+        if stored_lines:
+            # Find lines that exist in the new text but weren't there in the old text
+            new_additions = [line for line in current_lines if line not in stored_lines]
             
-            # Loops through both numbers and pings them
-            for phone in PHONE_NUMBERS:
-                send_whatsapp_alert(alert_text, phone)
+            if new_additions:
+                print("Changes detected! Preparing text summary...")
+                
+                # Build the WhatsApp message
+                alert_text = f"🚨 *NABI Career Page Update!* 🚨\n\n"
+                alert_text += f"🔗 *Link:* {URL_TO_WATCH}\n\n"
+                alert_text += f"➕ *What was added/changed:*\n"
+                
+                # Take up to the first 5 new lines so the text message isn't infinitely long
+                for line in new_additions[:5]:
+                    alert_text += f"• {line}\n"
+                
+                if len(new_additions) > 5:
+                    alert_text += f"• _...and {len(new_additions) - 5} more lines._\n"
+                
+                # Send the customized message to both phone numbers
+                for phone in PHONE_NUMBERS:
+                    send_whatsapp_alert(alert_text, phone)
+            else:
+                print("No new content added.")
         else:
-            print("No changes found on the page.")
+            print("First run: Establishing baseline text file.")
         
-        # Save the current state as the baseline benchmark for the next run
-        with open(HASH_FILE, "w") as f:
-            f.write(current_hash)
+        # Save the actual text content line by line for next comparison
+        with open(TEXT_FILE, "w", encoding="utf-8") as f:
+            for line in current_lines:
+                f.write(f"{line}\n")
     else:
-        print("Could not scrape page successfully on this run.")
+        print("Could not scrape page successfully.")
 
 if __name__ == "__main__":
     check_website()
