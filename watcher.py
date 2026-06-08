@@ -3,12 +3,12 @@ import requests
 from bs4 import BeautifulSoup
 
 # ==================== CONFIGURATION ====================
-WAPPFLY_API_KEY = os.environ.get("WAPPFLY_API_KEY")
-WAPPFLY_DEVICE_ID = os.environ.get("WAPPFLY_DEVICE_ID")
+INSTANCE_ID = os.environ.get("WAPPFLY_DEVICE_ID")    # Green-API idInstance
+API_TOKEN = os.environ.get("WAPPFLY_API_KEY")        # Green-API apiTokenInstance
 
 PHONE_NUMBERS = [
-    os.environ.get("PHONE_ONE"),
-    os.environ.get("PHONE_TWO")
+    os.environ.get("PHONE_ONE"),                     # Must format as: 91XXXXXXXXXX@c.us
+    os.environ.get("PHONE_TWO")                      # Must format as: 91XXXXXXXXXX@c.us
 ]
 
 URL_TO_WATCH = "https://nabi.res.in/site/career"
@@ -27,35 +27,27 @@ def get_url_text(url):
         print(f"Error reading {url}: {e}")
     return None
 
-def send_whatsapp_alert(message_text, target_phone):
-    if not target_phone or not WAPPFLY_API_KEY or not WAPPFLY_DEVICE_ID:
-        print(f"Skipping alert for {target_phone}: Missing credentials or secret values.")
+def send_whatsapp_alert(message_text, target_chat_id):
+    if not target_chat_id or not INSTANCE_ID or not API_TOKEN:
+        print(f"Skipping alert for {target_chat_id}: Missing credentials or phone token.")
         return
         
-    # The absolute verified text endpoint for Wappfly v1 API
-    api_url = "https://wappfly.com/api/v1/messages/send-text"
+    # Official Green-API message delivery route
+    api_url = f"https://api.green-api.com/waInstance{INSTANCE_ID}/sendMessage/{API_TOKEN}"
     
-    headers = {
-        "X-API-Token": WAPPFLY_API_KEY,
-        "Content-Type": "application/json"
-    }
-    
-    # Official JSON structure required by Wappfly
     payload = {
-        "device_id": WAPPFLY_DEVICE_ID,
-        "to": target_phone,
+        "chatId": target_chat_id,
         "message": message_text
     }
     
     try:
-        # Standard json POST request
-        res = requests.post(api_url, json=payload, headers=headers, timeout=15)
-        if res.status_code in [200, 201]:
-            print(f"🎉 Success! WhatsApp alert sent to {target_phone}!")
+        res = requests.post(api_url, json=payload, timeout=12)
+        if res.status_code == 200:
+            print(f"🎉 Success! WhatsApp alert sent to {target_chat_id}!")
         else:
-            print(f"Wappfly Return Error: {res.status_code} - {res.text}")
+            print(f"Green-API Error Code: {res.status_code} - {res.text}")
     except Exception as e:
-        print(f"Failed to communicate with Wappfly server: {e}")
+        print(f"Failed to communicate with Green-API server: {e}")
 
 def check_website():
     stored_lines = []
@@ -70,13 +62,13 @@ def check_website():
             new_additions = [line for line in current_lines if line not in stored_lines]
             if new_additions:
                 print("Changes detected! Preparing text summary...")
-                alert_text = "🚨 *NABI Career Page Update!* 🚨\n\n"
-                alert_text += f"🔗 *Link:* {URL_TO_WATCH}\n\n"
-                alert_text += "➕ *What was added/changed:*\n"
+                alert_text = "🚨 NABI Career Page Update! 🚨\n\n"
+                alert_text += f"Link: {URL_TO_WATCH}\n\n"
+                alert_text += "What was added/changed:\n"
                 for line in new_additions[:5]:
                     alert_text += f"• {line}\n"
                 if len(new_additions) > 5:
-                    alert_text += f"• _...and {len(new_additions) - 5} more lines._\n"
+                    alert_text += f"• ...and {len(new_additions) - 5} more lines.\n"
                 
                 for phone in PHONE_NUMBERS:
                     send_whatsapp_alert(alert_text, phone)
@@ -91,11 +83,11 @@ def check_website():
     else:
         print("Could not scrape page successfully.")
 
-# ==================== EXECUTION CONTROL ====================
+# ==================== FORCED LIVE TEST BLOCK ====================
 if __name__ == "__main__":
-    print("🚀 Running live connection test via official Wappfly v1 gateway...")
-    test_msg = "🚀 *Wappfly Connection Fixed!* 🚀\n\nYour free tier script and GitHub action are handling requests cleanly!"
+    print("🚀 Running direct Green-API text pipeline validation...")
+    test_msg = "🚀 Connection Complete!\n\nYour free tracking automation script is delivering messages successfully!"
     
     for phone in PHONE_NUMBERS:
         send_whatsapp_alert(test_msg, phone)
-# ===========================================================
+# ================================================================
