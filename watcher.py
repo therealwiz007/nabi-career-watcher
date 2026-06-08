@@ -69,4 +69,31 @@ def check_website():
             if new_additions:
                 print("Changes detected! Preparing text summary...")
                 alert_text = "🚨 *NABI Career Page Update!* 🚨\n\n"
-                alert_text += f"🔗 *Link:* {URL_TO_WATCH}\
+                alert_text += f"🔗 *Link:* {URL_TO_WATCH}\n\n"
+                alert_text += "➕ *What was added/changed:*\n"
+                for line in new_additions[:5]:
+                    alert_text += f"• {line}\n"
+                if len(new_additions) > 5:
+                    alert_text += f"• _...and {len(new_additions) - 5} more lines._\n"
+                
+                for phone in PHONE_NUMBERS:
+                    send_whatsapp_alert(alert_text, phone)
+            else:
+                print("No new content added since the last check.")
+        else:
+            print("First run: Establishing baseline tracking text file.")
+        
+        with open(TEXT_FILE, "w", encoding="utf-8") as f:
+            for line in current_lines:
+                f.write(f"{line}\n")
+    else:
+        print("Could not scrape page successfully.")
+
+# ==================== EXECUTION CONTROL ====================
+if __name__ == "__main__":
+    print("🚀 Bypassing website check to run a direct Wappfly message test...")
+    test_msg = "🚀 *Wappfly Connection Test!* 🚀\n\nYour GitHub secrets and automated script are working perfectly!"
+    
+    for phone in PHONE_NUMBERS:
+        send_whatsapp_alert(test_msg, phone)
+# ===========================================================
