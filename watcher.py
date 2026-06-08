@@ -63,7 +63,7 @@ def check_website():
     
     if current_lines:
         # If we have a past record, compare them line-by-line
-        if stored_lines:
+        if True:
             # Find lines that exist in the new text but weren't there in the old text
             new_additions = [line for line in current_lines if line not in stored_lines]
             
