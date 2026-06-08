@@ -12,7 +12,7 @@ PHONE_NUMBERS = [
 ]
 
 URL_TO_WATCH = "https://nabi.res.in/site/career"
-TEXT_FILE = "last_website_text.txt"  # Changed from hash to storing actual text
+TEXT_FILE = "last_website_text.txt"
 # =======================================================
 
 def get_url_text(url):
@@ -23,8 +23,6 @@ def get_url_text(url):
         
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Get clean text, strip empty spaces, and break into clean lines
             lines = [line.strip() for line in soup.get_text().splitlines() if line.strip()]
             return lines
     except Exception as e:
@@ -33,6 +31,7 @@ def get_url_text(url):
 
 def send_whatsapp_alert(message_text, target_phone):
     if not target_phone:
+        print("Skipping alert: Target phone number secret is empty.")
         return
     api_url = "https://api.wappfly.com/v1/messages"
     headers = {
@@ -49,7 +48,7 @@ def send_whatsapp_alert(message_text, target_phone):
         if res.status_code in [200, 201]:
             print(f"WhatsApp alert successfully sent to {target_phone}!")
         else:
-            print(f"Wappfly error: {res.text}")
+            print(f"Wappfly error for {target_phone}: {res.status_code} - {res.text}")
     except Exception as e:
         print(f"Failed to connect to Wappfly: {e}")
 
@@ -62,27 +61,17 @@ def check_website():
     current_lines = get_url_text(URL_TO_WATCH)
     
     if current_lines:
-        # If we have a past record, compare them line-by-line
-        if True:
-            # Find lines that exist in the new text but weren't there in the old text
+        if stored_lines:
             new_additions = [line for line in current_lines if line not in stored_lines]
-            
             if new_additions:
                 print("Changes detected! Preparing text summary...")
-                
-                # Build the WhatsApp message
                 alert_text = f"🚨 *NABI Career Page Update!* 🚨\n\n"
                 alert_text += f"🔗 *Link:* {URL_TO_WATCH}\n\n"
                 alert_text += f"➕ *What was added/changed:*\n"
-                
-                # Take up to the first 5 new lines so the text message isn't infinitely long
                 for line in new_additions[:5]:
                     alert_text += f"• {line}\n"
-                
                 if len(new_additions) > 5:
                     alert_text += f"• _...and {len(new_additions) - 5} more lines._\n"
-                
-                # Send the customized message to both phone numbers
                 for phone in PHONE_NUMBERS:
                     send_whatsapp_alert(alert_text, phone)
             else:
@@ -90,12 +79,17 @@ def check_website():
         else:
             print("First run: Establishing baseline text file.")
         
-        # Save the actual text content line by line for next comparison
         with open(TEXT_FILE, "w", encoding="utf-8") as f:
             for line in current_lines:
                 f.write(f"{line}\n")
     else:
         print("Could not scrape page successfully.")
 
+# ==================== FORCED TEST RUN EXECUTION ====================
 if __name__ == "__main__":
-    check_website()
+    print("🚀 Running live connection test directly to Wappfly...")
+    test_msg = "🚀 *Wappfly Connection Test!* 🚀\n\nIf you receive this, your GitHub secrets automation and API key are working perfectly!"
+    
+    for phone in PHONE_NUMBERS:
+        send_whatsapp_alert(test_msg, phone)
+# ===================================================================
