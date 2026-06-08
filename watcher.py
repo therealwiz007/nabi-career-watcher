@@ -33,11 +33,16 @@ def send_whatsapp_alert(message_text, target_phone):
     if not target_phone:
         print("Skipping alert: Target phone number secret is empty.")
         return
-    api_url = "https://api.wappfly.com/v1/messages"
+        
+    # Updated to correct base domain
+    api_url = "https://wappfly.com/api/send" 
+    
+    # Updated headers to use the exact 'X-API-Token' format they require
     headers = {
-        "Authorization": f"Bearer {WAPPFLY_API_KEY}",
+        "X-API-Token": WAPPFLY_API_KEY,
         "Content-Type": "application/json"
     }
+    
     payload = {
         "device_id": WAPPFLY_DEVICE_ID,
         "to": target_phone,
